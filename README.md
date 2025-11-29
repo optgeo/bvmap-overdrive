@@ -1,75 +1,74 @@
 # bvmap-overdrive
 
-PMTiles形式で提供されている国土地理院最適化ベクトルタイル（bvmap）をMVT（Mapbox Vector Tiles）からMLT（MapLibre Tiles）に変換したbvmap-overdrive.pmtilesを作成するプロジェクトです。
+A project to convert GSI (Geospatial Information Authority of Japan) optimal vector tiles from MVT (Mapbox Vector Tiles) to MLT (MapLibre Tiles) format, creating bvmap-overdrive.pmtiles.
 
-## 概要
+## Overview
 
-国土地理院最適化ベクトルタイルを以下の変換パイプラインで処理します：
+GSI optimal vector tiles are processed through the following conversion pipeline:
 
 1. PMTiles (MVT) → MBTiles (MVT) [tile-join]
 2. MBTiles (MVT) → MBTiles (MLT) [mlt-encode.jar]
 3. MBTiles (MLT) → PMTiles (MLT) [go-pmtiles]
 
-## データソース
+## Data Source
 
-- **入力**: https://cyberjapandata.gsi.go.jp/xyz/optimal_bvmap-v1/optimal_bvmap-v1.pmtiles
-- **出力**: bvmap-overdrive.pmtiles
+- **Input**: https://cyberjapandata.gsi.go.jp/xyz/optimal_bvmap-v1/optimal_bvmap-v1.pmtiles
+- **Output**: bvmap-overdrive.pmtiles
 
-## 必要条件
+## Prerequisites
 
-以下のツールがインストールされている必要があります：
+The following tools must be installed:
 
-- [just](https://github.com/casey/just) - コマンドランナー
-- [aria2c](https://aria2.github.io/) - ダウンローダー
-- [tippecanoe](https://github.com/felt/tippecanoe) - tile-join コマンドを含む
-- [Java](https://adoptium.net/) - JRE 11以上
-- [rsync](https://rsync.samba.org/) - ファイル同期
+- [just](https://github.com/casey/just) - Command runner
+- [aria2c](https://aria2.github.io/) - Download utility
+- [tippecanoe](https://github.com/felt/tippecanoe) - Includes tile-join command
+- [Java](https://adoptium.net/) - JRE 11 or higher
+- [rsync](https://rsync.samba.org/) - File synchronization
 
-## 使い方
+## Usage
 
-### すべての変換を実行
+### Run All Conversion Steps
 
 ```bash
 just doit
 ```
 
-このコマンドは以下を実行します：
-1. go-pmtiles と mlt-encode.jar をダウンロード（未取得の場合）
-2. 国土地理院PMTilesをダウンロード
-3. PMTilesをMBTilesに変換
-4. MVTからMLTに変換
-5. MLT MBTilesをPMTilesに変換
+This command executes:
+1. Download go-pmtiles and mlt-encode.jar (if not already present)
+2. Download GSI PMTiles
+3. Convert PMTiles to MBTiles
+4. Convert MVT to MLT
+5. Convert MLT MBTiles to PMTiles
 
-### 結果をアップロード
+### Upload Result
 
 ```bash
 just upload
 ```
 
-x-24bサーバー（tunnel.optgeo.org）にbvmap-overdrive.pmtilesをアップロードします。
+Uploads bvmap-overdrive.pmtiles to x-24b server (pod.local).
 
-### 個別タスク
+### Individual Tasks
 
 ```bash
-just download      # 依存ツールのダウンロード
-just fetch         # 入力PMTilesのダウンロード
-just pmtiles2mbtiles  # PMTiles→MBTiles変換
-just mbtiles2mlt   # MVT→MLT変換
-just mlt2pmtiles   # MBTiles(MLT)→PMTiles変換
-just clean         # 中間ファイルの削除
+just download      # Download dependency tools
+just fetch         # Download input PMTiles
+just pmtiles2mbtiles  # Convert PMTiles to MBTiles
+just mbtiles2mlt   # Convert MVT to MLT
+just mlt2pmtiles   # Convert MBTiles(MLT) to PMTiles
+just clean         # Remove intermediate files
 ```
 
-## 参考情報
+## References
 
-- [MapLibre Tile Spec](https://github.com/maplibre/maplibre-tile-spec) - MLT仕様とエンコーダー
-- [go-pmtiles](https://github.com/protomaps/go-pmtiles) - PMTiles変換ツール
-- [UNopenGIS/7#833](https://github.com/UNopenGIS/7/issues/833) - プロジェクト発起イシュー
+- [MapLibre Tile Spec](https://github.com/maplibre/maplibre-tile-spec) - MLT specification and encoder
+- [go-pmtiles](https://github.com/protomaps/go-pmtiles) - PMTiles conversion tool
+- [UNopenGIS/7#833](https://github.com/UNopenGIS/7/issues/833) - Project origin issue
 
 ## FIXME
 
-- **FIXME1**: tunnel.optgeo.orgへのアップロードパスが未確定（現在は `/x-24b/` と仮定）
-- **FIXME2**: mlt-encode.jarのオプション（--tesselate, --outlines, --compress）の最適値が未検証
+- **FIXME2**: Optimal values for mlt-encode.jar options (--tessellate, --outlines, --compress) need validation
 
-## ライセンス
+## License
 
 MIT License
