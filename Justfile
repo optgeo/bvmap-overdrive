@@ -87,7 +87,7 @@ mbtiles2mlt:
     java -jar mlt-encode.jar \
         --mbtiles "{{mvt_mbtiles}}" \
         --mlt "{{mlt_mbtiles}}" \
-        --tesselate \
+        --tessellate \
         --outlines ALL \
         --compress=deflate \
         --verbose
