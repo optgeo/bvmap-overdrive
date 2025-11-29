@@ -102,6 +102,14 @@ mlt2pmtiles:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "MBTiles(MLT) → PMTiles 変換中..."
+    if [ ! -f "./pmtiles" ]; then
+        echo "エラー: pmtiles バイナリが見つかりません。ダウンロードまたはビルドしてください。" >&2
+        exit 1
+    fi
+    if [ ! -f "{{mlt_mbtiles}}" ]; then
+        echo "エラー: 入力MBTilesファイル '{{mlt_mbtiles}}' が見つかりません。" >&2
+        exit 1
+    fi
     ./pmtiles convert "{{mlt_mbtiles}}" "{{output_pmtiles}}"
     echo "変換完了: {{output_pmtiles}}"
 
