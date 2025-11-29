@@ -75,6 +75,10 @@ pmtiles2mbtiles:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "PMTiles → MBTiles 変換中..."
+    if [ ! -f "{{input_pmtiles}}" ]; then
+        echo "エラー: 入力ファイル {{input_pmtiles}} が存在しません。fetch タスクを実行してください。" >&2
+        exit 1
+    fi
     tile-join -f -o "{{mvt_mbtiles}}" "{{input_pmtiles}}"
     echo "変換完了: {{mvt_mbtiles}}"
 
