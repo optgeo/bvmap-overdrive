@@ -1,0 +1,23 @@
+# Generated files
+*.pmtiles
+*.mbtiles
+
+# Downloaded tools
+pmtiles
+mlt-encode.jar
+mlt-decode.jar
+
+# Downloaded archives
+*.tar.gz
+*.zip
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
