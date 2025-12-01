@@ -85,7 +85,40 @@ pmtiles2mbtiles:
     echo "Conversion complete: {{mvt_mbtiles}}"
 
 # Convert MVT MBTiles to MLT MBTiles
-# FIXME2: Validate optimal values for --tessellate, --outlines, --compress options
+#
+# MLT Encoding Parameters for Martin Tile Server Compatibility:
+# =============================================================
+#
+# --tessellate:
+#   Enables polygon tessellation for efficient GPU rendering.
+#   This is essential for future MLT mainstreaming with WebGL/WebGPU APIs.
+#   Reference: https://maplibre.org/maplibre-tile-spec/
+#
+# --outlines ALL:
+#   Generates outlines for all polygon features.
+#   Improves rendering quality for vector tile visualization.
+#   Reference: https://github.com/maplibre/maplibre-tile-spec
+#
+# --compress=gzip:
+#   CRITICAL: Uses gzip compression instead of deflate.
+#   
+#   Martin tile server compatibility requirements:
+#   - PMTiles spec supports: None(1), Deflate(2), Gzip(3), Brotli(4)
+#   - Martin ONLY supports: None or Gzip for internal tile compression
+#   - Deflate is NOT supported by Martin and causes hosting errors
+#   
+#   Gzip was chosen over "none" because:
+#   1. Significant file size reduction (important for web delivery)
+#   2. Gzip is widely supported by all browsers and CDNs
+#   3. Martin can serve gzip-compressed tiles directly without recompression
+#   4. Better compression ratio than raw/uncompressed tiles
+#   
+#   References:
+#   - PMTiles compression enum: https://pmtiles.io/typedoc/enums/Compression.html
+#   - Martin CLI docs: https://maplibre.org/martin/run-with-cli.html
+#   - Martin compression issue: https://github.com/maplibre/martin/issues/577
+#   - PMTiles spec v3: https://github.com/protomaps/PMTiles/blob/main/spec/v3/spec.md
+#
 mbtiles2mlt:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -103,7 +136,7 @@ mbtiles2mlt:
         --mlt "{{mlt_mbtiles}}" \
         --tessellate \
         --outlines ALL \
-        --compress=deflate \
+        --compress=gzip \
         --verbose
     echo "Conversion complete: {{mlt_mbtiles}}"
 
