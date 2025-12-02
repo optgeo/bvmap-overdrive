@@ -65,10 +65,6 @@ just clean         # Remove intermediate files
 - [go-pmtiles](https://github.com/protomaps/go-pmtiles) - PMTiles conversion tool
 - [UNopenGIS/7#833](https://github.com/UNopenGIS/7/issues/833) - Project origin issue
 
-## FIXME
-
-- **FIXME2**: Optimal values for mlt-encode.jar options (--tessellate, --outlines, --compress) need validation
-
 ## License
 
 MIT License
