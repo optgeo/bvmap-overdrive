@@ -119,6 +119,20 @@ pmtiles2mbtiles:
 #   - Martin compression issue: https://github.com/maplibre/martin/issues/577
 #   - PMTiles spec v3: https://github.com/protomaps/PMTiles/blob/main/spec/v3/spec.md
 #
+# --coerce-mismatch:
+#   Allows coercion of property values when type mismatches occur.
+#   
+#   GSI optimal vector tiles contain properties with inconsistent types across features.
+#   For example, the 'vt_arrngagl' property in the 'Anno' layer has both INT_32 and DOUBLE
+#   values across different features. Without this flag, mlt-encode.jar throws:
+#     java.lang.RuntimeException: Layer 'Anno' Feature index 280 Property 'vt_arrngagl'
+#     has different type: INT_32 / DOUBLE
+#   
+#   This parameter enables type coercion, allowing the encoder to unify these types
+#   (typically promoting to the wider type, e.g., INT_32 -> DOUBLE).
+#   
+#   Reference: https://github.com/maplibre/maplibre-tile-spec (java/mlt-cli/Encode.java)
+#
 mbtiles2mlt:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -137,6 +151,7 @@ mbtiles2mlt:
         --tessellate \
         --outlines ALL \
         --compress=gzip \
+        --coerce-mismatch \
         --verbose
     echo "Conversion complete: {{mlt_mbtiles}}"
 
