@@ -103,7 +103,7 @@ pmtiles2mbtiles:
 #   CRITICAL: Uses gzip compression instead of deflate.
 #   
 #   Martin tile server compatibility requirements:
-#   - PMTiles spec supports: None(1), Deflate(2), Gzip(3), Brotli(4)
+#   - PMTiles v3 spec supports: Unknown(0), None(1), Gzip(2), Brotli(3), Zstd(4)
 #   - Martin ONLY supports: None or Gzip for internal tile compression
 #   - Deflate is NOT supported by Martin and causes hosting errors
 #   
