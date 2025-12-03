@@ -8,9 +8,8 @@ mvt_mbtiles := "bvmap-mvt.mbtiles"
 mlt_mbtiles := "bvmap-mlt.mbtiles"
 output_pmtiles := "bvmap-overdrive.pmtiles"
 
-# go-pmtiles version and URL
+# go-pmtiles version
 go_pmtiles_version := "1.28.2"
-go_pmtiles_url := "https://github.com/protomaps/go-pmtiles/releases/download/v" + go_pmtiles_version + "/go-pmtiles_" + go_pmtiles_version + "_Linux_x86_64.tar.gz"
 
 # mlt-encode.jar version and URL
 mlt_version := "java-v0.0.4"
@@ -39,11 +38,53 @@ _download_pmtiles_cli:
     set -euo pipefail
     if [ ! -f "pmtiles" ]; then
         echo "Downloading go-pmtiles..."
-        aria2c -o go-pmtiles.tar.gz "{{go_pmtiles_url}}"
-        tar -xzf go-pmtiles.tar.gz pmtiles
-        rm go-pmtiles.tar.gz
+        
+        # Detect OS
+        OS=$(uname -s)
+        # Detect architecture
+        ARCH=$(uname -m)
+        
+        # Map architecture names
+        case "$ARCH" in
+            x86_64|amd64)
+                ARCH="x86_64"
+                ;;
+            arm64|aarch64)
+                ARCH="arm64"
+                ;;
+            *)
+                echo "Unsupported architecture: $ARCH" >&2
+                exit 1
+                ;;
+        esac
+        
+        # Construct download URL based on OS
+        VERSION="{{go_pmtiles_version}}"
+        BASE_URL="https://github.com/protomaps/go-pmtiles/releases/download/v${VERSION}"
+        
+        case "$OS" in
+            Linux)
+                ARCHIVE="go-pmtiles_${VERSION}_Linux_${ARCH}.tar.gz"
+                URL="${BASE_URL}/${ARCHIVE}"
+                aria2c -o go-pmtiles.tar.gz "$URL"
+                tar -xzf go-pmtiles.tar.gz pmtiles
+                rm go-pmtiles.tar.gz
+                ;;
+            Darwin)
+                ARCHIVE="go-pmtiles-${VERSION}_Darwin_${ARCH}.zip"
+                URL="${BASE_URL}/${ARCHIVE}"
+                aria2c -o go-pmtiles.zip "$URL"
+                unzip -o go-pmtiles.zip pmtiles
+                rm go-pmtiles.zip
+                ;;
+            *)
+                echo "Unsupported OS: $OS" >&2
+                exit 1
+                ;;
+        esac
+        
         chmod +x pmtiles
-        echo "go-pmtiles download complete"
+        echo "go-pmtiles download complete (${OS}/${ARCH})"
     else
         echo "go-pmtiles already exists"
     fi
