@@ -9,6 +9,7 @@ GSI optimal vector tiles are processed through the following conversion pipeline
 1. PMTiles (MVT) → MBTiles (MVT) [tile-join]
 2. MBTiles (MVT) → MBTiles (MLT) [mlt-encode.jar]
 3. MBTiles (MLT) → PMTiles (MLT) [go-pmtiles]
+4. Fix PMTiles metadata for Martin compatibility [go-pmtiles edit]
 
 ## Data Source
 
@@ -23,6 +24,7 @@ The following tools must be installed:
 - [aria2c](https://aria2.github.io/) - Download utility
 - [tippecanoe](https://github.com/felt/tippecanoe) - Includes tile-join command
 - [Java](https://adoptium.net/) - JRE 11 or higher
+- [jq](https://jqlang.github.io/jq/) - JSON processor (for fixing PMTiles metadata)
 - [rsync](https://rsync.samba.org/) - File synchronization
 
 ## Usage
@@ -39,6 +41,7 @@ This command executes:
 3. Convert PMTiles to MBTiles
 4. Convert MVT to MLT
 5. Convert MLT MBTiles to PMTiles
+6. Fix PMTiles metadata for Martin tile server compatibility
 
 ### Upload Result
 
@@ -56,6 +59,7 @@ just fetch         # Download input PMTiles
 just pmtiles2mbtiles  # Convert PMTiles to MBTiles
 just mbtiles2mlt   # Convert MVT to MLT
 just mlt2pmtiles   # Convert MBTiles(MLT) to PMTiles
+just fix-metadata  # Fix metadata for Martin compatibility
 just clean         # Remove intermediate files
 ```
 
