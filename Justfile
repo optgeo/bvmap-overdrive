@@ -240,18 +240,27 @@ fix-metadata:
         echo "Error: {{output_pmtiles}} does not exist. Run mlt2pmtiles task first." >&2
         exit 1
     fi
+    if ! command -v jq &> /dev/null; then
+        echo "Error: jq is required but not installed. Please install jq." >&2
+        exit 1
+    fi
+    
+    # Create unique temporary files
+    HEADER_JSON=$(mktemp)
+    HEADER_FIXED=$(mktemp)
+    trap 'rm -f "$HEADER_JSON" "$HEADER_FIXED"' EXIT
     
     # Get current header as JSON
-    ./pmtiles show --header-json "{{output_pmtiles}}" > header.json
+    ./pmtiles show --header-json "{{output_pmtiles}}" > "$HEADER_JSON"
     
     # Update tile_type and tile_compression using jq
-    jq '.tile_type = "mvt" | .tile_compression = "gzip"' header.json > header-fixed.json
+    if ! jq '.tile_type = "mvt" | .tile_compression = "gzip"' "$HEADER_JSON" > "$HEADER_FIXED"; then
+        echo "Error: Failed to update header JSON with jq" >&2
+        exit 1
+    fi
     
     # Apply the fixed header
-    ./pmtiles edit "{{output_pmtiles}}" --header-json header-fixed.json
-    
-    # Clean up temporary files
-    rm -f header.json header-fixed.json
+    ./pmtiles edit "{{output_pmtiles}}" --header-json "$HEADER_FIXED"
     
     echo "Metadata fix complete: tile_type=mvt, tile_compression=gzip"
 
