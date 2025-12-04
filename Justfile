@@ -26,7 +26,7 @@ default:
     @just --list
 
 # Run all conversion steps
-doit: download fetch pmtiles2mbtiles mbtiles2mlt mlt2pmtiles
+doit: download fetch pmtiles2mbtiles mbtiles2mlt mlt2pmtiles fix-metadata
     @echo "Conversion complete: {{output_pmtiles}}"
 
 # Download dependency tools
@@ -211,6 +211,58 @@ mlt2pmtiles:
     fi
     ./pmtiles convert "{{mlt_mbtiles}}" "{{output_pmtiles}}"
     echo "Conversion complete: {{output_pmtiles}}"
+
+# Fix PMTiles metadata for Martin tile server compatibility
+#
+# Martin tile server requires PMTiles to have valid tile_type and tile_compression
+# in the header. When MLT tiles are converted to PMTiles, these values are set to
+# "Unknown" because go-pmtiles doesn't recognize MLT as a tile format.
+#
+# This workaround sets:
+#   - tile_type: "mvt" (Martin treats tiles as opaque blobs, so this works)
+#   - tile_compression: "gzip" (matches the actual compression used by mlt-encode)
+#
+# The actual MLT format is handled by the client (MapLibre GL JS), not the server.
+#
+# References:
+#   - Martin PMTiles source: https://github.com/maplibre/martin/blob/main/martin-core/src/tiles/pmtiles/source.rs
+#   - go-pmtiles edit command: https://github.com/protomaps/go-pmtiles
+#
+fix-metadata:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "Fixing PMTiles metadata for Martin compatibility..."
+    if [ ! -f "./pmtiles" ]; then
+        echo "Error: pmtiles binary not found. Please download or build it." >&2
+        exit 1
+    fi
+    if [ ! -f "{{output_pmtiles}}" ]; then
+        echo "Error: {{output_pmtiles}} does not exist. Run mlt2pmtiles task first." >&2
+        exit 1
+    fi
+    if ! command -v jq &> /dev/null; then
+        echo "Error: jq is required but not installed. Please install jq." >&2
+        exit 1
+    fi
+    
+    # Create unique temporary files
+    HEADER_JSON=$(mktemp)
+    HEADER_FIXED=$(mktemp)
+    trap 'rm -f "$HEADER_JSON" "$HEADER_FIXED"' EXIT
+    
+    # Get current header as JSON
+    ./pmtiles show --header-json "{{output_pmtiles}}" > "$HEADER_JSON"
+    
+    # Update tile_type and tile_compression using jq
+    if ! jq '.tile_type = "mvt" | .tile_compression = "gzip"' "$HEADER_JSON" > "$HEADER_FIXED"; then
+        echo "Error: Failed to update header JSON with jq" >&2
+        exit 1
+    fi
+    
+    # Apply the fixed header
+    ./pmtiles edit "{{output_pmtiles}}" --header-json "$HEADER_FIXED"
+    
+    echo "Metadata fix complete: tile_type=mvt, tile_compression=gzip"
 
 # Upload result to server
 upload:
