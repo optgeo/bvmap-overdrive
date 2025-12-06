@@ -57,7 +57,12 @@
         <script>
             // Load the style.json
             fetch('style.json')
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(style => {
                     // Initialize the map with MLT tiles
                     const map = new maplibregl.Map({
@@ -99,8 +104,10 @@
                 })
                 .catch(error => {
                     console.error('Error loading style:', error);
-                    document.getElementById('info').innerHTML += 
-                        '<p style="color: red;">Error loading style.json</p>';
+                    const errorMsg = document.createElement('p');
+                    errorMsg.style.color = 'red';
+                    errorMsg.textContent = 'Error loading style.json';
+                    document.getElementById('info').appendChild(errorMsg);
                 });
         </script>
     </body>
