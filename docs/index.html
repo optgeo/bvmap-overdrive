@@ -66,26 +66,30 @@
             #info-toggle {
                 position: absolute;
                 top: 10px;
-                width: 32px;
-                height: 32px;
+                width: 24px;
+                height: 24px;
                 background-color: rgba(255, 255, 255, 0.9);
-                border: none;
-                border-radius: 4px;
+                border: 1px solid rgba(0, 0, 0, 0.1);
+                border-radius: 2px;
                 cursor: pointer;
-                font-size: 18px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                font-size: 16px;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.1);
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 z-index: 1;
                 transition: left 0.3s ease;
             }
+            #info-toggle:hover {
+                background-color: rgba(255, 255, 255, 1);
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            }
             #info-toggle:focus {
                 outline: 2px solid #0066cc;
                 outline-offset: 2px;
             }
             #info-toggle.panel-open {
-                left: 330px;
+                left: 320px; /* Panel max-width (300px) + left margin (10px) + spacing (10px) */
             }
             #info-toggle.panel-closed {
                 left: 10px;
@@ -94,15 +98,15 @@
     </head>
     <body>
         <div id="map"></div>
-        <button id="info-toggle" aria-label="Toggle info panel">›</button>
+        <button id="info-toggle" aria-label="Toggle info panel">></button>
         <div id="info">
             <h3>bvmap-overdrive</h3>
-            <p>MLT-encoded vector tiles from GSI Japan</p>
+            <p>GSI Japan basemap vector tiles, MLT-encoded</p>
             
             <div class="control-group">
                 <label for="style-select">Style:</label>
                 <select id="style-select">
-                    <option value="std.json">Standard (std)</option>
+                    <option value="std.json">Standard</option>
                     <option value="skeleton.json">Skeleton</option>
                 </select>
             </div>
@@ -111,13 +115,7 @@
             <p>Tiles: <a href="https://tunnel.optgeo.org/martin/bvmap-overdrive" target="_blank">TileJSON</a></p>
         </div>
         <script>
-            // Detect if user is on mobile device
-            function isMobile() {
-                return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-                    window.innerWidth < 768;
-            }
-
-            // Initialize info panel state based on device
+            // Initialize info panel state - minimized by default
             const infoPanel = document.getElementById('info');
             const infoToggle = document.getElementById('info-toggle');
             
@@ -125,35 +123,25 @@
             function updatePanelState(shouldMinimize) {
                 if (shouldMinimize) {
                     infoPanel.classList.add('minimized');
-                    infoToggle.textContent = '‹';
+                    infoToggle.textContent = '>';
                     infoToggle.classList.remove('panel-open');
                     infoToggle.classList.add('panel-closed');
                 } else {
                     infoPanel.classList.remove('minimized');
-                    infoToggle.textContent = '›';
+                    infoToggle.textContent = '<';
                     infoToggle.classList.remove('panel-closed');
                     infoToggle.classList.add('panel-open');
                 }
             }
             
-            // Initialize based on device
-            updatePanelState(isMobile());
-
-            // Update info panel state on window resize
-            window.addEventListener('resize', () => {
-                const shouldMinimize = isMobile();
-                if (shouldMinimize && !infoPanel.classList.contains('minimized')) {
-                    updatePanelState(true);
-                } else if (!shouldMinimize && infoPanel.classList.contains('minimized')) {
-                    updatePanelState(false);
-                }
-            });
+            // Set panel as minimized by default
+            updatePanelState(true);
 
             // Toggle info panel
             infoToggle.addEventListener('click', () => {
                 infoPanel.classList.toggle('minimized');
                 const isMinimized = infoPanel.classList.contains('minimized');
-                infoToggle.textContent = isMinimized ? '‹' : '›';
+                infoToggle.textContent = isMinimized ? '>' : '<';
                 infoToggle.classList.toggle('panel-open', !isMinimized);
                 infoToggle.classList.toggle('panel-closed', isMinimized);
             });
@@ -212,10 +200,20 @@
                             maxzoom: 16
                         };
 
-                        // Add hillshade layer at the beginning (after background)
-                        const backgroundIndex = style.layers.findIndex(layer => layer.id === 'background');
-                        if (backgroundIndex !== -1) {
-                            style.layers.splice(backgroundIndex + 1, 0, hillshadeLayer);
+                        // Add hillshade layer after water polygons for std.json, or after background for other styles
+                        let insertIndex;
+                        if (styleFile === 'std.json') {
+                            // For std.json, insert hillshade after water polygons ('水域' means 'water area' layer)
+                            const waterIndex = style.layers.findIndex(layer => layer.id === '水域');
+                            insertIndex = waterIndex !== -1 ? waterIndex + 1 : -1;
+                        } else {
+                            // For other styles, insert after background
+                            const backgroundIndex = style.layers.findIndex(layer => layer.id === 'background');
+                            insertIndex = backgroundIndex !== -1 ? backgroundIndex + 1 : -1;
+                        }
+                        
+                        if (insertIndex !== -1) {
+                            style.layers.splice(insertIndex, 0, hillshadeLayer);
                         } else {
                             style.layers.unshift(hillshadeLayer);
                         }
