@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>bvmap-overdrive - MLT Vector Tiles</title>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="https://unpkg.com/maplibre-gl@5.14.0/dist/maplibre-gl.js"></script>
+        <link href="https://unpkg.com/maplibre-gl@5.14.0/dist/maplibre-gl.css" rel="stylesheet" />
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            #map {
+                position: absolute;
+                top: 0;
+                bottom: 0;
+                width: 100%;
+            }
+            #info {
+                position: absolute;
+                top: 10px;
+                left: 10px;
+                background-color: rgba(255, 255, 255, 0.9);
+                padding: 10px;
+                border-radius: 4px;
+                font-family: sans-serif;
+                font-size: 14px;
+                max-width: 300px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            }
+            #info h3 {
+                margin: 0 0 8px 0;
+                font-size: 16px;
+            }
+            #info p {
+                margin: 4px 0;
+                font-size: 12px;
+            }
+            #info a {
+                color: #0066cc;
+                text-decoration: none;
+            }
+            #info a:hover {
+                text-decoration: underline;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="map"></div>
+        <div id="info">
+            <h3>bvmap-overdrive</h3>
+            <p>MLT-encoded vector tiles from GSI Japan</p>
+            <p>Using MapLibre GL JS v5.14.0 with MLT support</p>
+            <p>Tiles: <a href="https://tunnel.optgeo.org/martin/bvmap-overdrive" target="_blank">TileJSON</a></p>
+        </div>
+        <script>
+            // Load the style.json
+            fetch('style.json')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(style => {
+                    // Initialize the map with MLT tiles
+                    const map = new maplibregl.Map({
+                        container: 'map',
+                        style: style,
+                        center: [139.7670, 35.6812], // Tokyo
+                        zoom: 10,
+                        hash: true
+                    });
+
+                    // Add navigation controls
+                    map.addControl(new maplibregl.NavigationControl(), 'top-right');
+
+                    // Add geolocate control
+                    map.addControl(
+                        new maplibregl.GeolocateControl({
+                            positionOptions: {
+                                enableHighAccuracy: true
+                            },
+                            trackUserLocation: true
+                        }),
+                        'top-right'
+                    );
+
+                    // Add scale control
+                    map.addControl(new maplibregl.ScaleControl(), 'bottom-left');
+
+                    // Log when map is loaded
+                    map.on('load', () => {
+                        console.log('Map loaded successfully');
+                        console.log('Style sources:', map.getStyle().sources);
+                        console.log('MLT encoding enabled for source "v"');
+                    });
+
+                    // Handle errors
+                    map.on('error', (e) => {
+                        console.error('Map error:', e);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading style:', error);
+                    const errorMsg = document.createElement('p');
+                    errorMsg.style.color = 'red';
+                    errorMsg.textContent = 'Error loading style.json';
+                    document.getElementById('info').appendChild(errorMsg);
+                });
+        </script>
+    </body>
+</html>
