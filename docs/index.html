@@ -98,7 +98,7 @@
     </head>
     <body>
         <div id="map"></div>
-        <button id="info-toggle" aria-label="Toggle info panel">›</button>
+        <button id="info-toggle" aria-label="Toggle info panel">></button>
         <div id="info">
             <h3>bvmap-overdrive</h3>
             <p>GSI Japan basemap vector tiles, MLT-encoded</p>
@@ -123,12 +123,12 @@
             function updatePanelState(shouldMinimize) {
                 if (shouldMinimize) {
                     infoPanel.classList.add('minimized');
-                    infoToggle.textContent = '‹';
+                    infoToggle.textContent = '>';
                     infoToggle.classList.remove('panel-open');
                     infoToggle.classList.add('panel-closed');
                 } else {
                     infoPanel.classList.remove('minimized');
-                    infoToggle.textContent = '›';
+                    infoToggle.textContent = '<';
                     infoToggle.classList.remove('panel-closed');
                     infoToggle.classList.add('panel-open');
                 }
@@ -141,7 +141,7 @@
             infoToggle.addEventListener('click', () => {
                 infoPanel.classList.toggle('minimized');
                 const isMinimized = infoPanel.classList.contains('minimized');
-                infoToggle.textContent = isMinimized ? '‹' : '›';
+                infoToggle.textContent = isMinimized ? '>' : '<';
                 infoToggle.classList.toggle('panel-open', !isMinimized);
                 infoToggle.classList.toggle('panel-closed', isMinimized);
             });
