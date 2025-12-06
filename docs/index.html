@@ -28,6 +28,10 @@
                 font-size: 14px;
                 max-width: 300px;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                transition: transform 0.3s ease;
+            }
+            #info.minimized {
+                transform: translateX(-320px);
             }
             #info h3 {
                 margin: 0 0 8px 0;
@@ -44,71 +48,262 @@
             #info a:hover {
                 text-decoration: underline;
             }
+            .control-group {
+                margin: 10px 0;
+            }
+            .control-group label {
+                display: block;
+                margin-bottom: 4px;
+                font-weight: bold;
+            }
+            .control-group select {
+                width: 100%;
+                padding: 4px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                font-size: 12px;
+            }
+            #info-toggle {
+                position: absolute;
+                top: 10px;
+                width: 32px;
+                height: 32px;
+                background-color: rgba(255, 255, 255, 0.9);
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 18px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1;
+                transition: left 0.3s ease;
+            }
+            #info-toggle:focus {
+                outline: 2px solid #0066cc;
+                outline-offset: 2px;
+            }
+            #info-toggle.panel-open {
+                left: 330px;
+            }
+            #info-toggle.panel-closed {
+                left: 10px;
+            }
         </style>
     </head>
     <body>
         <div id="map"></div>
+        <button id="info-toggle" aria-label="Toggle info panel">›</button>
         <div id="info">
             <h3>bvmap-overdrive</h3>
             <p>MLT-encoded vector tiles from GSI Japan</p>
+            
+            <div class="control-group">
+                <label for="style-select">Style:</label>
+                <select id="style-select">
+                    <option value="std.json">Standard (std)</option>
+                    <option value="skeleton.json">Skeleton</option>
+                </select>
+            </div>
+            
             <p>Using MapLibre GL JS v5.14.0 with MLT support</p>
             <p>Tiles: <a href="https://tunnel.optgeo.org/martin/bvmap-overdrive" target="_blank">TileJSON</a></p>
         </div>
         <script>
-            // Load the style.json
-            fetch('style.json')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(style => {
-                    // Initialize the map with MLT tiles
-                    const map = new maplibregl.Map({
-                        container: 'map',
-                        style: style,
-                        center: [139.7670, 35.6812], // Tokyo
-                        zoom: 10,
-                        hash: true
+            // Detect if user is on mobile device
+            function isMobile() {
+                return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                    window.innerWidth < 768;
+            }
+
+            // Initialize info panel state based on device
+            const infoPanel = document.getElementById('info');
+            const infoToggle = document.getElementById('info-toggle');
+            
+            // Function to update panel state
+            function updatePanelState(shouldMinimize) {
+                if (shouldMinimize) {
+                    infoPanel.classList.add('minimized');
+                    infoToggle.textContent = '‹';
+                    infoToggle.classList.remove('panel-open');
+                    infoToggle.classList.add('panel-closed');
+                } else {
+                    infoPanel.classList.remove('minimized');
+                    infoToggle.textContent = '›';
+                    infoToggle.classList.remove('panel-closed');
+                    infoToggle.classList.add('panel-open');
+                }
+            }
+            
+            // Initialize based on device
+            updatePanelState(isMobile());
+
+            // Update info panel state on window resize
+            window.addEventListener('resize', () => {
+                const shouldMinimize = isMobile();
+                if (shouldMinimize && !infoPanel.classList.contains('minimized')) {
+                    updatePanelState(true);
+                } else if (!shouldMinimize && infoPanel.classList.contains('minimized')) {
+                    updatePanelState(false);
+                }
+            });
+
+            // Toggle info panel
+            infoToggle.addEventListener('click', () => {
+                infoPanel.classList.toggle('minimized');
+                const isMinimized = infoPanel.classList.contains('minimized');
+                infoToggle.textContent = isMinimized ? '‹' : '›';
+                infoToggle.classList.toggle('panel-open', !isMinimized);
+                infoToggle.classList.toggle('panel-closed', isMinimized);
+            });
+
+            // Default style
+            let currentStyle = 'std.json';
+            let map = null;
+
+            // Hillshade layer configuration
+            const hillshadeLayer = {
+                id: 'hillshade',
+                type: 'hillshade',
+                source: 'hillshadeSource',
+                paint: {
+                    'hillshade-exaggeration': 0.3,
+                    'hillshade-shadow-color': '#473B24'
+                }
+            };
+
+            // Load and initialize map with selected style
+            function loadStyle(styleFile) {
+                // Validate styleFile to prevent XSS
+                const allowedStyles = ['std.json', 'skeleton.json'];
+                if (!allowedStyles.includes(styleFile)) {
+                    console.error('Invalid style file:', styleFile);
+                    return;
+                }
+                
+                fetch(styleFile)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(fetchedStyle => {
+                        // Create a deep copy to avoid mutating the fetched object
+                        const style = JSON.parse(JSON.stringify(fetchedStyle));
+                        
+                        // Add terrain sources to the style
+                        // Using separate objects to avoid shared reference issues
+                        style.sources.terrainSource = {
+                            type: 'raster-dem',
+                            tiles: ['https://tunnel.optgeo.org/martin/fusi/{z}/{x}/{y}'],
+                            encoding: 'terrarium',
+                            tileSize: 512,
+                            minzoom: 0,
+                            maxzoom: 16
+                        };
+                        style.sources.hillshadeSource = {
+                            type: 'raster-dem',
+                            tiles: ['https://tunnel.optgeo.org/martin/fusi/{z}/{x}/{y}'],
+                            encoding: 'terrarium',
+                            tileSize: 512,
+                            minzoom: 0,
+                            maxzoom: 16
+                        };
+
+                        // Add hillshade layer at the beginning (after background)
+                        const backgroundIndex = style.layers.findIndex(layer => layer.id === 'background');
+                        if (backgroundIndex !== -1) {
+                            style.layers.splice(backgroundIndex + 1, 0, hillshadeLayer);
+                        } else {
+                            style.layers.unshift(hillshadeLayer);
+                        }
+
+                        // Enable 3D terrain
+                        style.terrain = {
+                            source: 'terrainSource',
+                            exaggeration: 1.0
+                        };
+
+                        if (map) {
+                            // Update existing map style
+                            map.setStyle(style);
+                        } else {
+                            // Initialize the map with terrain
+                            map = new maplibregl.Map({
+                                container: 'map',
+                                style: style,
+                                center: [139.7670, 35.6812], // Tokyo
+                                zoom: 10,
+                                pitch: 0,
+                                bearing: 0,
+                                hash: true,
+                                maxPitch: 85,
+                                projection: 'globe'
+                            });
+
+                            // Add navigation controls
+                            map.addControl(new maplibregl.NavigationControl({
+                                visualizePitch: true
+                            }), 'top-right');
+
+                            // Add geolocate control
+                            map.addControl(
+                                new maplibregl.GeolocateControl({
+                                    positionOptions: {
+                                        enableHighAccuracy: true
+                                    },
+                                    trackUserLocation: true
+                                }),
+                                'top-right'
+                            );
+
+                            // Add GlobeControl
+                            map.addControl(new maplibregl.GlobeControl(), 'top-right');
+
+                            // Add scale control
+                            map.addControl(new maplibregl.ScaleControl(), 'bottom-left');
+
+                            // Log when map is loaded
+                            map.on('load', () => {
+                                console.log('Map loaded successfully');
+                                console.log('Style:', currentStyle);
+                                console.log('Style sources:', map.getStyle().sources);
+                                console.log('MLT encoding enabled for source "v"');
+                                console.log('Terrain enabled with exaggeration: 1.0');
+                            });
+
+                            // Handle errors
+                            map.on('error', (e) => {
+                                console.error('Map error:', e);
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading style:', error);
+                        
+                        // Remove any existing error messages
+                        const infoPanel = document.getElementById('info');
+                        const existingErrors = infoPanel.querySelectorAll('.error-message');
+                        existingErrors.forEach(el => el.remove());
+
+                        const errorMsg = document.createElement('p');
+                        errorMsg.className = 'error-message';
+                        errorMsg.style.color = 'red';
+                        errorMsg.textContent = `Error loading ${styleFile}`;
+                        infoPanel.appendChild(errorMsg);
                     });
+            }
 
-                    // Add navigation controls
-                    map.addControl(new maplibregl.NavigationControl(), 'top-right');
+            // Style selector change handler
+            document.getElementById('style-select').addEventListener('change', (e) => {
+                currentStyle = e.target.value;
+                loadStyle(currentStyle);
+            });
 
-                    // Add geolocate control
-                    map.addControl(
-                        new maplibregl.GeolocateControl({
-                            positionOptions: {
-                                enableHighAccuracy: true
-                            },
-                            trackUserLocation: true
-                        }),
-                        'top-right'
-                    );
-
-                    // Add scale control
-                    map.addControl(new maplibregl.ScaleControl(), 'bottom-left');
-
-                    // Log when map is loaded
-                    map.on('load', () => {
-                        console.log('Map loaded successfully');
-                        console.log('Style sources:', map.getStyle().sources);
-                        console.log('MLT encoding enabled for source "v"');
-                    });
-
-                    // Handle errors
-                    map.on('error', (e) => {
-                        console.error('Map error:', e);
-                    });
-                })
-                .catch(error => {
-                    console.error('Error loading style:', error);
-                    const errorMsg = document.createElement('p');
-                    errorMsg.style.color = 'red';
-                    errorMsg.textContent = 'Error loading style.json';
-                    document.getElementById('info').appendChild(errorMsg);
-                });
+            // Initialize map with default style (std.json)
+            loadStyle(currentStyle);
         </script>
     </body>
 </html>
