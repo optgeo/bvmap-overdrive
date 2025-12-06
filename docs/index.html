@@ -66,7 +66,6 @@
             #info-toggle {
                 position: absolute;
                 top: 10px;
-                left: 10px;
                 width: 32px;
                 height: 32px;
                 background-color: rgba(255, 255, 255, 0.9);
@@ -79,12 +78,17 @@
                 align-items: center;
                 justify-content: center;
                 z-index: 1;
+                transition: left 0.3s ease;
             }
-            #info.minimized ~ #info-toggle {
-                left: 10px;
+            #info-toggle:focus {
+                outline: 2px solid #0066cc;
+                outline-offset: 2px;
             }
-            #info:not(.minimized) ~ #info-toggle {
+            #info-toggle.panel-open {
                 left: 330px;
+            }
+            #info-toggle.panel-closed {
+                left: 10px;
             }
         </style>
     </head>
@@ -117,17 +121,41 @@
             const infoPanel = document.getElementById('info');
             const infoToggle = document.getElementById('info-toggle');
             
-            if (isMobile()) {
-                infoPanel.classList.add('minimized');
-                infoToggle.textContent = '‹';
-            } else {
-                infoToggle.textContent = '›';
+            // Function to update panel state
+            function updatePanelState(shouldMinimize) {
+                if (shouldMinimize) {
+                    infoPanel.classList.add('minimized');
+                    infoToggle.textContent = '‹';
+                    infoToggle.classList.remove('panel-open');
+                    infoToggle.classList.add('panel-closed');
+                } else {
+                    infoPanel.classList.remove('minimized');
+                    infoToggle.textContent = '›';
+                    infoToggle.classList.remove('panel-closed');
+                    infoToggle.classList.add('panel-open');
+                }
             }
+            
+            // Initialize based on device
+            updatePanelState(isMobile());
+
+            // Update info panel state on window resize
+            window.addEventListener('resize', () => {
+                const shouldMinimize = isMobile();
+                if (shouldMinimize && !infoPanel.classList.contains('minimized')) {
+                    updatePanelState(true);
+                } else if (!shouldMinimize && infoPanel.classList.contains('minimized')) {
+                    updatePanelState(false);
+                }
+            });
 
             // Toggle info panel
             infoToggle.addEventListener('click', () => {
                 infoPanel.classList.toggle('minimized');
-                infoToggle.textContent = infoPanel.classList.contains('minimized') ? '‹' : '›';
+                const isMinimized = infoPanel.classList.contains('minimized');
+                infoToggle.textContent = isMinimized ? '‹' : '›';
+                infoToggle.classList.toggle('panel-open', !isMinimized);
+                infoToggle.classList.toggle('panel-closed', isMinimized);
             });
 
             // Default style
@@ -147,6 +175,13 @@
 
             // Load and initialize map with selected style
             function loadStyle(styleFile) {
+                // Validate styleFile to prevent XSS
+                const allowedStyles = ['std.json', 'skeleton.json'];
+                if (!allowedStyles.includes(styleFile)) {
+                    console.error('Invalid style file:', styleFile);
+                    return;
+                }
+                
                 fetch(styleFile)
                     .then(response => {
                         if (!response.ok) {
@@ -154,7 +189,10 @@
                         }
                         return response.json();
                     })
-                    .then(style => {
+                    .then(fetchedStyle => {
+                        // Create a deep copy to avoid mutating the fetched object
+                        const style = JSON.parse(JSON.stringify(fetchedStyle));
+                        
                         // Add terrain sources to the style
                         // Using separate objects to avoid shared reference issues
                         style.sources.terrainSource = {
@@ -244,10 +282,17 @@
                     })
                     .catch(error => {
                         console.error('Error loading style:', error);
+                        
+                        // Remove any existing error messages
+                        const infoPanel = document.getElementById('info');
+                        const existingErrors = infoPanel.querySelectorAll('.error-message');
+                        existingErrors.forEach(el => el.remove());
+
                         const errorMsg = document.createElement('p');
+                        errorMsg.className = 'error-message';
                         errorMsg.style.color = 'red';
                         errorMsg.textContent = `Error loading ${styleFile}`;
-                        document.getElementById('info').appendChild(errorMsg);
+                        infoPanel.appendChild(errorMsg);
                     });
             }
 
