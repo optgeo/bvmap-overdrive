@@ -209,7 +209,7 @@ mlt2pmtiles:
         echo "Error: Input MBTiles file '{{mlt_mbtiles}}' not found." >&2
         exit 1
     fi
-    ./pmtiles convert "{{mlt_mbtiles}}" "{{output_pmtiles}}"
+    ./pmtiles convert --tmpdir=. "{{mlt_mbtiles}}" "{{output_pmtiles}}"
     echo "Conversion complete: {{output_pmtiles}}"
 
 # Fix PMTiles metadata for Martin tile server compatibility
