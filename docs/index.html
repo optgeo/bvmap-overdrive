@@ -89,7 +89,7 @@
                 outline-offset: 2px;
             }
             #info-toggle.panel-open {
-                left: 320px;
+                left: 320px; /* Panel max-width (300px) + left margin (10px) + spacing (10px) */
             }
             #info-toggle.panel-closed {
                 left: 10px;
@@ -203,7 +203,7 @@
                         // Add hillshade layer after water polygons for std.json, or after background for other styles
                         let insertIndex;
                         if (styleFile === 'std.json') {
-                            // For std.json, insert hillshade after water polygons (水域 layer)
+                            // For std.json, insert hillshade after water polygons ('水域' means 'water area' layer)
                             const waterIndex = style.layers.findIndex(layer => layer.id === '水域');
                             insertIndex = waterIndex !== -1 ? waterIndex + 1 : -1;
                         } else {
